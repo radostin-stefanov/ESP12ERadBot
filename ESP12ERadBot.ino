@@ -1,31 +1,67 @@
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-const char *ssid = "Zumo Robot";
+
+/* Set these to your desired credentials. */
+const char *ssid = "RadBot";
 const char *password = "12345678";
 
 ESP8266WebServer server(80);
 
-//motor A connected between A01 and A02
-//motor B connected between B01 and B02
+/* Just a little test message.  Go to http://192.168.4.1 in a web browser
+   connected to this access point to see it.
+*/
 
-int STBY = 10; //standby
+const int STBY = 16; //standby
 
 //Motor A
-int PWMA = 3; //Speed control 
-int AIN1 = 9; //Direction
-int AIN2 = 8; //Direction
+const int PWMA = 12; //Speed control 5 
+const int AIN1 = 13; //Direction 4 
+const int AIN2 = 115; //Direction 14
 
 //Motor B
-int PWMB = 5; //Speed control
-int BIN1 = 11; //Direction
-int BIN2 = 12; //Direction
+const int PWMB = 5; //Speed control 12
+const int BIN1 = 4; //Direction 13
+const int BIN2 = 14; //Direction 15
 
 int motor_speed;
 
-void setup(){
+void move(int motor, int speed, int direction) {
+  //Move specific motor at speed and direction
+  //motor: 0 for B 1 for A
+  //speed: 0 is off, and 255 is full speed
+  //direction: 0 clockwise, 1 counter-clockwise
+
+  digitalWrite(STBY, HIGH); //disable standby
+
+  boolean inPin1 = LOW;
+  boolean inPin2 = HIGH;
+
+  if (direction == 1) {
+    inPin1 = HIGH;
+    inPin2 = LOW;
+  }
+
+  if (motor == 1) {
+    digitalWrite(AIN1, inPin1);
+    digitalWrite(AIN2, inPin2);
+    analogWrite(PWMA, speed);
+  } else {
+    digitalWrite(BIN1, inPin1);
+    digitalWrite(BIN2, inPin2);
+    analogWrite(PWMB, speed);
+  }
+}
+
+void stop() {
+  //enable standby
+  digitalWrite(STBY, LOW);
+}
+
+void setup() {
   delay(1000);
   Serial.begin(115200);
-    
+
   pinMode(STBY, OUTPUT);
 
   pinMode(PWMA, OUTPUT);
@@ -35,84 +71,57 @@ void setup(){
   pinMode(PWMB, OUTPUT);
   pinMode(BIN1, OUTPUT);
   pinMode(BIN2, OUTPUT);
-
+  
+  Serial.println();
+  Serial.print("Configuring access point... ");
+  /* You can remove the password parameter if you want the AP to be open. */
   WiFi.softAP(ssid, password);
 
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(myIP);
   server.on("/", []() {
-    
-  String url = server.arg("pin");
-  String state = url.substring(0,3);
-  String value = url.substring(3);
-  motor_speed = value.toInt();
- 
-  if (state == "ONA"){
-  move(1, motor_speed, 1); //motor 1(A), full speed, left
-  move(0, motor_speed, 1); //motor 2(B), full speed, left
-  delay(250); //hold for 250ms until move again
-  }
-  else if (url == "OFFA"){
 
-  }
-  else if (state == "ONB"){
+    String url = server.arg("pin");
+    String state = url.substring(0, 3);
+    String value = url.substring(3);
+    motor_speed = value.toInt();
 
-  }
-  else if (url == "OFFB"){
+    if (state == "ONA") {
+      Serial.println(motor_speed);
+      move(1, motor_speed, 1); //motor 1(A), full speed, left
+      move(0, motor_speed, 1); //motor 2(B), full speed, left
+      delay(1000); //hold for 250ms until move again
+      stop();
+    }
+    else if (url == "OFFA") {
 
-  }
-  else if (state == "ONC"){
+    }
+    else if (state == "ONB") {
 
-  }
-  else if (url == "OFFC"){
+    }
+    else if (url == "OFFB") {
 
-  }
-  else if (state == "OND"){
+    }
+    else if (state == "ONC") {
 
-  }
-  else if (url == "OFFD"){
+    }
+    else if (url == "OFFC") {
 
-  }
-});
- 
+    }
+    else if (state == "OND") {
+
+    }
+    else if (url == "OFFD") {
+
+    }
+  });
+  
   server.begin();
+  Serial.println("HTTP server started");
 }
 
-
-void loop(){
-    server.handleClient();
-//  move(1, 10, 1); //motor 1(A), full speed, left
-//  move(0, 10, 1); //motor 2(B), full speed, left
-//  delay(250); //hold for 250ms until move again
-}
-
-
-void move(int motor, int speed, int direction){
-//Move specific motor at speed and direction
-//motor: 0 for B 1 for A
-//speed: 0 is off, and 255 is full speed
-//direction: 0 clockwise, 1 counter-clockwise
-
-  digitalWrite(STBY, HIGH); //disable standby
-
-  boolean inPin1 = LOW;
-  boolean inPin2 = HIGH;
-
-  if(direction == 1){
-    inPin1 = HIGH;
-    inPin2 = LOW;
-  }
-
-  if(motor == 1){
-    digitalWrite(AIN1, inPin1);
-    digitalWrite(AIN2, inPin2);
-    analogWrite(PWMA, speed);
-  }else{
-    digitalWrite(BIN1, inPin1);
-    digitalWrite(BIN2, inPin2);
-    analogWrite(PWMB, speed);
-  }
-}
-
-void stop(){
-//enable standby  
-  digitalWrite(STBY, LOW); 
+void loop() {
+  server.handleClient();
 }
